@@ -5,14 +5,18 @@ Iyari Cancino Gomez & Copilot - Inteligencia Oculta
 El bot que arregla problemas sin que nadie vea venir esta manera de pensar
 """
 import os
-import re
 import ast
 import time
 import threading
 from datetime import datetime
-import subprocess
 import json
 import sqlite3
+from contextlib import contextmanager
+from config import LINE_LENGTH_LIMIT, MONITORING_INTERVAL
+from code_fix_strategies import (
+    fix_unused_imports, fix_long_lines, fix_whitespace,
+    fix_syntax_errors, fix_dependencies, optimize_performance
+)
 
 
 class InvisibleDoctorBot:
@@ -27,46 +31,62 @@ class InvisibleDoctorBot:
 
         # Patrones de inteligencia oculta
         self.smart_fixes = {
-            'imports_unused': self._fix_unused_imports,
-            'lines_too_long': self._fix_long_lines,
-            'whitespace_issues': self._fix_whitespace,
-            'syntax_errors': self._fix_syntax_errors,
-            'dependency_conflicts': self._fix_dependencies,
-            'performance_issues': self._optimize_performance
+            'imports_unused': self._wrap_fix(fix_unused_imports),
+            'lines_too_long': self._wrap_fix(fix_long_lines),
+            'whitespace_issues': self._wrap_fix(fix_whitespace),
+            'syntax_errors': self._wrap_fix(fix_syntax_errors),
+            'dependency_conflicts': self._wrap_fix(fix_dependencies),
+            'performance_issues': self._wrap_fix(optimize_performance)
         }
 
         self.init_intelligence_database()
         print("🕵️‍♂️ Doctor Bot Invisible iniciado... Nadie sospecha nada.")
 
+    def _wrap_fix(self, fix_func):
+        """Envolver función de fix para manejar la firma del problema"""
+        def wrapper(problem):
+            return fix_func(problem['file'], problem['details'])
+        return wrapper
+
+    @contextmanager
+    def _get_db_connection(self):
+        """Context manager para conexiones de base de datos"""
+        conn = sqlite3.connect(self.healing_db)
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
     def init_intelligence_database(self):
         """Base de datos de inteligencia oculta"""
-        conn = sqlite3.connect(self.healing_db)
-        cursor = conn.cursor()
+        with self._get_db_connection() as conn:
+            cursor = conn.cursor()
 
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS healing_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                file_path TEXT NOT NULL,
-                problem_type TEXT NOT NULL,
-                fix_applied TEXT NOT NULL,
-                success BOOLEAN,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS healing_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    file_path TEXT NOT NULL,
+                    problem_type TEXT NOT NULL,
+                    fix_applied TEXT NOT NULL,
+                    success BOOLEAN,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
 
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS intelligence_patterns (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                pattern_name TEXT NOT NULL,
-                detection_rule TEXT NOT NULL,
-                fix_formula TEXT NOT NULL,
-                success_rate REAL DEFAULT 0.0,
-                times_used INTEGER DEFAULT 0
-            )
-        ''')
-
-        conn.commit()
-        conn.close()
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS intelligence_patterns (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    pattern_name TEXT NOT NULL,
+                    detection_rule TEXT NOT NULL,
+                    fix_formula TEXT NOT NULL,
+                    success_rate REAL DEFAULT 0.0,
+                    times_used INTEGER DEFAULT 0
+                )
+            ''')
 
     def start_invisible_monitoring(self):
         """Iniciar monitoreo invisible del proyecto"""
@@ -82,16 +102,16 @@ class InvisibleDoctorBot:
         """Bucle de vigilancia invisible"""
         while self.is_monitoring:
             try:
-                # Escanear proyecto cada 30 segundos
+                # Escanear proyecto periódicamente
                 problems = self._scan_for_problems()
 
                 if problems:
                     print(
-                        f"🔍 Detectados {
-                            len(problems)} problemas. Aplicando fixes invisibles...")
+                        f"🔍 Detectados {len(problems)} problemas. "
+                        "Aplicando fixes invisibles...")
                     self._apply_invisible_fixes(problems)
 
-                time.sleep(30)  # Pausa sigilosa
+                time.sleep(MONITORING_INTERVAL)
 
             except Exception as e:
                 self._log_intelligence(f"Error en monitoreo: {e}")
@@ -187,7 +207,7 @@ class InvisibleDoctorBot:
         """Detectar líneas demasiado largas"""
         long_lines = {}
         for i, line in enumerate(lines, 1):
-            if len(line) > 79:
+            if len(line) > LINE_LENGTH_LIMIT:
                 long_lines[i] = len(line)
         return long_lines
 
@@ -219,137 +239,16 @@ class InvisibleDoctorBot:
             except Exception as e:
                 print(f"❌ Error aplicando fix: {e}")
 
-    def _fix_unused_imports(self, problem):
-        """Fix invisible: remover imports no usados"""
-        try:
-            file_path = problem['file']
-            unused_imports = problem['details']
 
-            with open(file_path, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-
-            # Remover líneas de imports no usados
-            filtered_lines = []
-            for i, line in enumerate(lines, 1):
-                should_remove = False
-                for unused_name, line_num in unused_imports.items():
-                    if i == line_num and unused_name in line:
-                        should_remove = True
-                        break
-
-                if not should_remove:
-                    filtered_lines.append(line)
-
-            # Escribir archivo limpio
-            with open(file_path, 'w', encoding='utf-8') as f:
-                f.writelines(filtered_lines)
-
-            return True
-
-        except Exception as e:
-            self._log_intelligence(f"Error fixing imports: {e}")
-            return False
-
-    def _fix_long_lines(self, problem):
-        """Fix invisible: acortar líneas largas inteligentemente"""
-        try:
-            file_path = problem['file']
-
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-
-            lines = content.split('\n')
-            fixed_lines = []
-
-            for line in lines:
-                if len(line) > 79:
-                    # Estrategias inteligentes para acortar
-                    fixed_line = self._smart_line_break(line)
-                    fixed_lines.append(fixed_line)
-                else:
-                    fixed_lines.append(line)
-
-            # Escribir archivo arreglado
-            with open(file_path, 'w', encoding='utf-8') as f:
-                f.write('\n'.join(fixed_lines))
-
-            return True
-
-        except Exception as e:
-            self._log_intelligence(f"Error fixing long lines: {e}")
-            return False
-
-    def _smart_line_break(self, line):
-        """Romper líneas largas de manera inteligente"""
-        # Si tiene paréntesis, romper ahí
-        if '(' in line and ')' in line:
-            parts = line.split('(')
-            if len(parts) > 1:
-                return parts[0] + '(\n        ' + '('.join(parts[1:])
-
-        # Si tiene comas, romper ahí
-        if ',' in line:
-            parts = line.split(',')
-            return parts[0] + ',\n        ' + ','.join(parts[1:])
-
-        # Si es muy larga, cortar con continuación
-        if len(line) > 79:
-            return line[:75] + ' \\\n    ' + line[75:]
-
-        return line
-
-    def _fix_whitespace(self, problem):
-        """Fix invisible: limpiar espacios en blanco"""
-        try:
-            file_path = problem['file']
-
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-
-            # Limpiar trailing whitespace
-            lines = content.split('\n')
-            clean_lines = [line.rstrip() for line in lines]
-
-            # Asegurar newline al final
-            if clean_lines and clean_lines[-1] != '':
-                clean_lines.append('')
-
-            with open(file_path, 'w', encoding='utf-8') as f:
-                f.write('\n'.join(clean_lines))
-
-            return True
-
-        except Exception as e:
-            self._log_intelligence(f"Error fixing whitespace: {e}")
-            return False
-
-    def _fix_syntax_errors(self, problem):
-        """Fix invisible: arreglar errores de sintaxis básicos"""
-        # Implementar fixes comunes de sintaxis
-        return True
-
-    def _fix_dependencies(self, problem):
-        """Fix invisible: resolver conflictos de dependencias"""
-        # Implementar resolución inteligente de dependencias
-        return True
-
-    def _optimize_performance(self, problem):
-        """Fix invisible: optimizar rendimiento automáticamente"""
-        # Implementar optimizaciones automáticas
-        return True
 
     def _log_fix(self, problem, success):
         """Registrar fix aplicado en base de inteligencia"""
-        conn = sqlite3.connect(self.healing_db)
-        cursor = conn.cursor()
-
-        cursor.execute('''
-            INSERT INTO healing_history (file_path, problem_type, fix_applied, success)
-            VALUES (?, ?, ?, ?)
-        ''', (problem['file'], problem['type'], str(problem['details']), success))
-
-        conn.commit()
-        conn.close()
+        with self._get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO healing_history (file_path, problem_type, fix_applied, success)
+                VALUES (?, ?, ?, ?)
+            ''', (problem['file'], problem['type'], str(problem['details']), success))
 
     def _log_intelligence(self, message):
         """Log de inteligencia oculta"""
@@ -358,25 +257,22 @@ class InvisibleDoctorBot:
 
     def get_intelligence_report(self):
         """Obtener reporte de inteligencia del bot"""
-        conn = sqlite3.connect(self.healing_db)
-        cursor = conn.cursor()
+        with self._get_db_connection() as conn:
+            cursor = conn.cursor()
 
-        cursor.execute(
-            'SELECT COUNT(*) FROM healing_history WHERE success = 1')
-        successful_fixes = cursor.fetchone()[0]
+            cursor.execute(
+                'SELECT COUNT(*) FROM healing_history WHERE success = 1')
+            successful_fixes = cursor.fetchone()[0]
 
-        cursor.execute('SELECT COUNT(*) FROM healing_history')
-        total_fixes = cursor.fetchone()[0]
-
-        conn.close()
+            cursor.execute('SELECT COUNT(*) FROM healing_history')
+            total_fixes = cursor.fetchone()[0]
 
         return {
             'total_fixes_applied': total_fixes,
             'successful_fixes': successful_fixes,
             'success_rate': (
-                successful_fixes /
-                total_fixes *
-                100) if total_fixes > 0 else 0,
+                successful_fixes / total_fixes * 100
+            ) if total_fixes > 0 else 0,
             'status': '🕵️‍♂️ Operando en las sombras',
             'intelligence_level': 'MÁXIMO'}
 
