@@ -24,11 +24,11 @@
       ]
     },
     "docker_validation": {
-      "status": "WARNING",
-      "details": "Dockerfile references missing file",
-      "issues": [
-        "main_consciousness.py referenced in Dockerfile CMD but file doesn't exist",
-        "Should use orchestral_sync.py as entry point per documentation"
+      "status": "FIXED",
+      "details": "Dockerfile entry point corrected",
+      "fixes": [
+        "Changed CMD from main_consciousness.py to orchestral_sync.py",
+        "Now uses correct entry point per documentation"
       ]
     },
     "shell_scripts": {
@@ -63,6 +63,7 @@
   "summary": {
     "critical_issues": 0,
     "warnings": 2,
+    "fixed_issues": 1,
     "recommendations": 1,
     "overall_status": "VALIDATED WITH WARNINGS"
   }
