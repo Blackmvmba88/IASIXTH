@@ -3,6 +3,8 @@ import pytesseract
 import numpy as np
 from database import DatabaseManager
 import re
+from functools import lru_cache
+from config import OCR_LANGUAGE
 
 
 class TextRecognizer:
@@ -14,9 +16,11 @@ class TextRecognizer:
         pytesseract.pytesseract.tesseract_cmd = '/opt/homebrew/bin/tesseract'
 
         # Configuración para español
-        self.config = '--oem 3 --psm 6 -l spa'
+        self.config = f'--oem 3 --psm 6 -l {OCR_LANGUAGE}'
+        self._text_pattern = re.compile(r'[^\w\sáéíóúñü]', re.IGNORECASE)
 
-    def preprocess_for_ocr(self, frame):
+    @staticmethod
+    def preprocess_for_ocr(frame):
         """Preprocesar imagen para mejorar OCR"""
         # Convertir a escala de grises
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -70,8 +74,8 @@ class TextRecognizer:
                 processed, config=self.config
             ).strip()
 
-            # Limpiar texto
-            text = re.sub(r'[^\w\sáéíóúñü]', ' ', text, flags=re.IGNORECASE)
+            # Limpiar texto usando patrón compilado
+            text = self._text_pattern.sub(' ', text)
             text = ' '.join(text.split())
 
             return text if len(text) > 2 else None
@@ -99,37 +103,33 @@ class TextRecognizer:
 
         return detected_texts
 
-    def draw_text_boxes(self, frame, detected_texts):
+    @staticmethod
+    def draw_text_boxes(frame, detected_texts):
         """Dibujar cajas alrededor del texto detectado"""
+        font_scale = 0.5
+        thickness = 1
+        yellow = (255, 255, 0)
+        black = (0, 0, 0)
+
         for item in detected_texts:
             x, y, w, h = item['region']
-            text = item['text']
+            text = item['text'][:30]  # Limitar longitud
 
             # Dibujar rectángulo
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 255, 0), 2)
-
-            # Dibujar texto detectado
-            font_scale = 0.5
-            thickness = 1
+            cv2.rectangle(frame, (x, y), (x + w, y + h), yellow, 2)
 
             # Calcular posición del texto
-            text_size = cv2.getTextSize(text[:30], cv2.FONT_HERSHEY_SIMPLEX,
-                                        font_scale, thickness)[0]
+            text_size = cv2.getTextSize(
+                text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)[0]
 
             # Fondo para el texto
-            cv2.rectangle(frame, (x, y - text_size[1] - 10),
-                          (x + text_size[0], y), (255, 255, 0), -1)
+            cv2.rectangle(
+                frame, (x, y - text_size[1] - 10),
+                (x + text_size[0], y), yellow, -1)
 
             # Texto
-            cv2.putText(frame,
-                        text[:30],
-                        (x,
-                         y - 5),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        font_scale,
-                        (0,
-                            0,
-                            0),
-                        thickness)
+            cv2.putText(
+                frame, text, (x, y - 5),
+                cv2.FONT_HERSHEY_SIMPLEX, font_scale, black, thickness)
 
         return frame

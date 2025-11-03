@@ -2,6 +2,13 @@ import cv2
 
 
 class UIHandler:
+    # Color constants
+    GREEN = (0, 255, 0)
+    RED = (0, 0, 255)
+    BLUE = (255, 0, 0)
+    WHITE = (255, 255, 255)
+    BLACK = (0, 0, 0)
+
     def __init__(self):
         self.mouse_start = None
         self.mouse_end = None
@@ -41,46 +48,40 @@ class UIHandler:
 
     def draw_face_boxes(self, frame, face_locations, face_names):
         """Dibujar cajas de caras"""
-        for (
-                top, right, bottom, left), name in zip(
-                face_locations, face_names):
-            color = (0, 255, 0) if name != "Desconocido" else (0, 0, 255)
+        for (top, right, bottom, left), name in zip(face_locations, face_names):
+            color = self.GREEN if name != "Desconocido" else self.RED
 
             # Rectángulo de cara
             cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
 
             # Etiqueta de nombre
-            cv2.rectangle(frame, (left, bottom - 35),
-                          (right, bottom), color, cv2.FILLED)
-            cv2.putText(frame, name, (left + 6, bottom - 6),
-                        cv2.FONT_HERSHEY_DUPLEX, 0.8, (255, 255, 255), 1)
+            cv2.rectangle(
+                frame, (left, bottom - 35), (right, bottom), color, cv2.FILLED)
+            cv2.putText(
+                frame, name, (left + 6, bottom - 6),
+                cv2.FONT_HERSHEY_DUPLEX, 0.8, self.WHITE, 1)
 
         return frame
 
     def draw_selection_box(self, frame, selection_box):
         """Dibujar caja de selección"""
         if self.drawing and self.mouse_start and self.mouse_end:
-            cv2.rectangle(frame, self.mouse_start,
-                          self.mouse_end, (255, 0, 0), 2)
+            cv2.rectangle(
+                frame, self.mouse_start, self.mouse_end, self.BLUE, 2)
         elif selection_box:
             x, y, w, h = selection_box
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            cv2.rectangle(frame, (x, y), (x + w, y + h), self.GREEN, 2)
 
         return frame
 
     def draw_info_panel(
-            self,
-            frame,
-            objects,
-            texts,
-            learning_mode,
-            learning_name):
+            self, frame, objects, texts, learning_mode, learning_name):
         """Dibujar panel de información"""
-        height, width = frame.shape[:2]
+        height = frame.shape[0]
 
         # Panel principal
         overlay = frame.copy()
-        cv2.rectangle(overlay, (10, 10), (350, 120), (0, 0, 0), -1)
+        cv2.rectangle(overlay, (10, 10), (350, 120), self.BLACK, -1)
         frame = cv2.addWeighted(overlay, 0.7, frame, 0.3, 0)
 
         # Controles
@@ -92,21 +93,24 @@ class UIHandler:
         ]
 
         for i, text in enumerate(controls):
-            cv2.putText(frame, text, (15, 25 + i * 20),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
+            cv2.putText(
+                frame, text, (15, 25 + i * 20),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.4, self.WHITE, 1)
 
         # Estado de aprendizaje
         if learning_mode:
             status = f"APRENDIENDO: {learning_name}"
-            cv2.putText(frame, status, (10, height - 20),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+            cv2.putText(
+                frame, status, (10, height - 20),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, self.GREEN, 2)
 
-        # Mostrar objetos reconocidos
+        # Mostrar objetos reconocidos (solo primeros 3)
         y_offset = 140
-        for obj_name, confidence in objects[:3]:  # Solo primeros 3
+        for obj_name, confidence in objects[:3]:
             text = f"{obj_name}: {confidence:.2f}"
-            cv2.putText(frame, text, (10, y_offset),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+            cv2.putText(
+                frame, text, (10, y_offset),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.GREEN, 1)
             y_offset += 20
 
         return frame
