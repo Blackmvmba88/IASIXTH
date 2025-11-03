@@ -69,7 +69,7 @@ ENV CONSCIOUSNESS_DB=/iyari_copilot_adventure/consciousness_data
 ENV EVOLUTION_PATTERNS=/iyari_copilot_adventure/evolved_patterns
 
 # Comando por defecto - ¡La aventura inicia aquí!
-CMD ["python", "main_consciousness.py"]
+CMD ["python", "orchestral_sync.py"]
 
 # Healthcheck - verificar que el dúo dinámico esté activo
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s \
