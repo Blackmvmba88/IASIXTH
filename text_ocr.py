@@ -19,8 +19,7 @@ class TextRecognizer:
         self.config = f'--oem 3 --psm 6 -l {OCR_LANGUAGE}'
         self._text_pattern = re.compile(r'[^\w\sáéíóúñü]', re.IGNORECASE)
 
-    @staticmethod
-    def preprocess_for_ocr(frame):
+    def preprocess_for_ocr(self, frame):
         """Preprocesar imagen para mejorar OCR"""
         # Convertir a escala de grises
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)

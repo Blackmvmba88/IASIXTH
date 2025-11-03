@@ -27,9 +27,12 @@ class FaceRecognizer:
         face_encodings = face_recognition.face_encodings(
             rgb_frame, face_locations)
 
+        # Check if we have any known faces before processing
+        has_known_faces = bool(self.known_encodings)
+
         face_names = []
         for face_encoding in face_encodings:
-            if not self.known_encodings:
+            if not has_known_faces:
                 face_names.append("Desconocido")
                 continue
 

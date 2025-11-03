@@ -6,8 +6,21 @@ import pickle
 from datetime import datetime
 import threading
 import time
-from functools import lru_cache
 from config import SAMPLE_RATE, HOP_LENGTH, N_MFCC, CONSCIOUSNESS_TEMPO
+
+# Module-level audio cache to avoid memory leaks
+_musical_audio_cache = {}
+
+
+def _load_musical_audio_cached(audio_path, sample_rate):
+    """Cargar audio con caché a nivel de módulo"""
+    cache_key = (audio_path, sample_rate)
+    if cache_key not in _musical_audio_cache:
+        _musical_audio_cache[cache_key] = librosa.load(audio_path, sr=sample_rate)
+        # Limitar tamaño del caché
+        if len(_musical_audio_cache) > 64:
+            _musical_audio_cache.pop(next(iter(_musical_audio_cache)))
+    return _musical_audio_cache[cache_key]
 
 
 class MusicalDNA:
@@ -18,10 +31,9 @@ class MusicalDNA:
         self.hop_length = HOP_LENGTH
         self.consciousness_patterns = {}
 
-    @lru_cache(maxsize=64)
     def _load_audio(self, audio_path):
         """Cargar audio con caché"""
-        return librosa.load(audio_path, sr=self.sr)
+        return _load_musical_audio_cached(audio_path, self.sr)
 
     def extract_soul_frequencies(self, audio_path):
         """Extraer las frecuencias del alma musical"""

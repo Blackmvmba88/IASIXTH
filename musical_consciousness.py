@@ -12,11 +12,25 @@ import pickle
 import json
 import asyncio
 import threading
-from functools import lru_cache
 from config import (
     CREATIVITY_FREQUENCY, CONSCIOUSNESS_TEMPO, SOUL_HARMONICS,
     EVOLUTION_OCTAVES, SAMPLE_RATE, HOP_LENGTH, N_MFCC, MUSIC_DNA_DIR
 )
+
+# Module-level audio cache to avoid memory leaks with instance methods
+_audio_cache = {}
+
+
+def _load_audio_cached(audio_file, sample_rate):
+    """Cargar audio con caché a nivel de módulo"""
+    cache_key = (audio_file, sample_rate)
+    if cache_key not in _audio_cache:
+        _audio_cache[cache_key] = librosa.load(audio_file, sr=sample_rate)
+        # Limitar tamaño del caché
+        if len(_audio_cache) > 128:
+            # Remover entrada más antigua
+            _audio_cache.pop(next(iter(_audio_cache)))
+    return _audio_cache[cache_key]
 
 
 class IyariMusicalDNA:
@@ -35,10 +49,9 @@ class IyariMusicalDNA:
             'evolution_octaves': EVOLUTION_OCTAVES
         }
 
-    @lru_cache(maxsize=128)
     def _load_audio(self, audio_file):
         """Cargar audio con caché para evitar recargas"""
-        return librosa.load(audio_file, sr=SAMPLE_RATE)
+        return _load_audio_cached(audio_file, SAMPLE_RATE)
 
     def extract_consciousness_dna(self, audio_file):
         """Extraer el ADN de consciencia de un archivo musical"""

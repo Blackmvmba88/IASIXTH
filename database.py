@@ -7,6 +7,7 @@ from config import DETECTION_HISTORY_LIMIT
 class DatabaseManager:
     def __init__(self, db_path="recognition_db.sqlite"):
         self.db_path = db_path
+        self._detection_count = 0  # Track insertions for batch cleanup
         self.init_database()
 
     @contextmanager
@@ -126,12 +127,15 @@ class DatabaseManager:
                 VALUES (?, ?, ?)
             ''', (object_type, object_name, confidence))
 
-            # Mantener solo las últimas N detecciones para evitar crecimiento infinito
-            cursor.execute('''
-                DELETE FROM detection_history
-                WHERE id NOT IN (
-                    SELECT id FROM detection_history
-                    ORDER BY timestamp DESC
-                    LIMIT ?
-                )
-            ''', (DETECTION_HISTORY_LIMIT,))
+            # Incrementar contador y limpiar cada 100 inserciones (batch cleanup)
+            self._detection_count += 1
+            if self._detection_count >= 100:
+                cursor.execute('''
+                    DELETE FROM detection_history
+                    WHERE id NOT IN (
+                        SELECT id FROM detection_history
+                        ORDER BY timestamp DESC
+                        LIMIT ?
+                    )
+                ''', (DETECTION_HISTORY_LIMIT,))
+                self._detection_count = 0
