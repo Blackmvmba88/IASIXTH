@@ -49,7 +49,8 @@ def smart_line_break(line):
 
     # Si es muy larga, cortar con continuación
     if len(line) > LINE_LENGTH_LIMIT:
-        return line[:LINE_LENGTH_LIMIT - 4] + ' \\\n    ' + line[LINE_LENGTH_LIMIT - 4:]
+        split_point = LINE_LENGTH_LIMIT - 4
+        return line[:split_point] + ' \\\n    ' + line[split_point:]
 
     return line
 
@@ -102,17 +103,20 @@ def fix_whitespace(file_path, whitespace_issues):
 
 def fix_syntax_errors(file_path, syntax_error_info):
     """Arreglar errores de sintaxis básicos"""
-    # Implementar fixes comunes de sintaxis
-    return True
+    # TODO: Implementar fixes comunes de sintaxis
+    # Por ahora retornar False para indicar que no está implementado
+    return False
 
 
 def fix_dependencies(file_path, dependency_issues):
     """Resolver conflictos de dependencias"""
-    # Implementar resolución inteligente de dependencias
-    return True
+    # TODO: Implementar resolución inteligente de dependencias
+    # Por ahora retornar False para indicar que no está implementado
+    return False
 
 
 def optimize_performance(file_path, performance_issues):
     """Optimizar rendimiento automáticamente"""
-    # Implementar optimizaciones automáticas
-    return True
+    # TODO: Implementar optimizaciones automáticas
+    # Por ahora retornar False para indicar que no está implementado
+    return False
