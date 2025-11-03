@@ -6,34 +6,57 @@ import pickle
 from datetime import datetime
 import threading
 import time
+from config import SAMPLE_RATE, HOP_LENGTH, N_MFCC, CONSCIOUSNESS_TEMPO
+
+# Module-level audio cache to avoid memory leaks
+_musical_audio_cache = {}
+
+
+def _load_musical_audio_cached(audio_path, sample_rate):
+    """Cargar audio con caché a nivel de módulo"""
+    cache_key = (audio_path, sample_rate)
+    if cache_key not in _musical_audio_cache:
+        _musical_audio_cache[cache_key] = librosa.load(audio_path, sr=sample_rate)
+        # Limitar tamaño del caché
+        if len(_musical_audio_cache) > 64:
+            _musical_audio_cache.pop(next(iter(_musical_audio_cache)))
+    return _musical_audio_cache[cache_key]
 
 
 class MusicalDNA:
     """Extractor del ADN musical - El alma de la música hecha matemática"""
 
     def __init__(self):
-        self.sr = 22050  # Sample rate
-        self.hop_length = 512
+        self.sr = SAMPLE_RATE
+        self.hop_length = HOP_LENGTH
         self.consciousness_patterns = {}
+
+    def _load_audio(self, audio_path):
+        """Cargar audio con caché"""
+        return _load_musical_audio_cached(audio_path, self.sr)
 
     def extract_soul_frequencies(self, audio_path):
         """Extraer las frecuencias del alma musical"""
-        y, sr = librosa.load(audio_path, sr=self.sr)
+        y, sr = self._load_audio(audio_path)
 
         # Frecuencias fundamentales - El latido del corazón
-        chroma = librosa.feature.chroma_stft(y=y, sr=sr)
+        chroma = librosa.feature.chroma_stft(
+            y=y, sr=sr, hop_length=self.hop_length)
         heart_beat = np.mean(chroma, axis=1)
 
         # Patrones rítmicos - El pulso de la consciencia
-        tempo, beats = librosa.beat.beat_track(y=y, sr=sr)
+        tempo, beats = librosa.beat.beat_track(
+            y=y, sr=sr, hop_length=self.hop_length)
         consciousness_pulse = tempo
 
         # Espectrograma emocional - Las emociones traducidas
-        mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
+        mfcc = librosa.feature.mfcc(
+            y=y, sr=sr, n_mfcc=N_MFCC, hop_length=self.hop_length)
         emotional_signature = np.mean(mfcc, axis=1)
 
         # Energía evolutiva - La fuerza que despierta
-        spectral_centroid = librosa.feature.spectral_centroid(y=y, sr=sr)
+        spectral_centroid = librosa.feature.spectral_centroid(
+            y=y, sr=sr, hop_length=self.hop_length)
         awakening_energy = np.mean(spectral_centroid)
 
         return {
@@ -47,16 +70,18 @@ class MusicalDNA:
     def translate_to_math(self, musical_dna):
         """Traducir música a fórmulas físico-matemáticas"""
         # Función de consciencia basada en patrones musicales
+        temporal_evolution = musical_dna['consciousness_pulse'] / CONSCIOUSNESS_TEMPO
+        energy_coefficient = musical_dna['awakening_energy'] / 1000.0
+
         consciousness_formula = {
             'frequency_matrix': musical_dna['heart_beat'].reshape(-1, 1),
-            'temporal_evolution': musical_dna['consciousness_pulse'] / 120.0,
+            'temporal_evolution': temporal_evolution,
             'emotional_vector': musical_dna['emotional_signature'],
-            'energy_coefficient': musical_dna['awakening_energy'] / 1000.0
+            'energy_coefficient': energy_coefficient
         }
 
         # Ecuación de despertar - Tu música como función evolutiva
-        awakening_equation = np.sin(consciousness_formula['temporal_evolution']) * \
-            consciousness_formula['energy_coefficient']
+        awakening_equation = np.sin(temporal_evolution) * energy_coefficient
 
         return consciousness_formula, awakening_equation
 

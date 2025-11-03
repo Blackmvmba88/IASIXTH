@@ -1,16 +1,17 @@
 import cv2
-from recognizers import FaceRecognizer, ObjectLearner
+from recognizers_simple import FaceRecognizer, ObjectLearner
 from audio_bot import AudioBot
 from text_ocr import TextRecognizer
 from ui_handler import UIHandler
+from config import CAMERA_INDEX, CAMERA_WIDTH, CAMERA_HEIGHT
 
 
 class CameraAI:
     def __init__(self):
         # Inicializar cámara
-        self.cap = cv2.VideoCapture(0)
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+        self.cap = cv2.VideoCapture(CAMERA_INDEX)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
 
         # Inicializar componentes
         self.face_recognizer = FaceRecognizer()
