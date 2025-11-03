@@ -1,0 +1,10 @@
+opencv-python
+face-recognition
+numpy
+Pillow
+scikit-learn
+imutils
+pytesseract
+SpeechRecognition
+pyttsx3
+pyaudio
