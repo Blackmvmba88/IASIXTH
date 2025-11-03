@@ -3,6 +3,10 @@ import threading
 import json
 from datetime import datetime
 import queue
+from config import (
+    MAX_TRANSCRIPTIONS, AUDIO_TIMEOUT, PHRASE_TIME_LIMIT,
+    MIC_CALIBRATION_DURATION, VOICE_LANGUAGE
+)
 
 
 class EarTrainingMode:
@@ -13,7 +17,7 @@ class EarTrainingMode:
 
         # Estados
         self.is_listening = False
-        self.transcription_queue = queue.Queue()
+        self.transcription_queue = queue.Queue(maxsize=MAX_TRANSCRIPTIONS)
 
         # Configuración de speakers
         self.known_voices = {}  # voz_id: {"name": str, "color": str}
@@ -30,7 +34,8 @@ class EarTrainingMode:
         """Calibrar micrófono para el entorno"""
         print("🎧 Calibrando micrófono para modo OÍDO...")
         with self.microphone as source:
-            self.recognizer.adjust_for_ambient_noise(source, duration=2)
+            self.recognizer.adjust_for_ambient_noise(
+                source, duration=MIC_CALIBRATION_DURATION)
         print("✅ Micrófono calibrado")
 
     def start_ear_training(self):
@@ -58,10 +63,10 @@ class EarTrainingMode:
         while self.is_listening:
             try:
                 with self.microphone as source:
-                    # Escuchar fragmentos cortos para transcripción
-                    # en tiempo real
+                    # Escuchar fragmentos cortos para transcripción en tiempo real
                     audio = self.recognizer.listen(
-                        source, timeout=0.5, phrase_time_limit=3)
+                        source, timeout=AUDIO_TIMEOUT,
+                        phrase_time_limit=PHRASE_TIME_LIMIT)
 
                 # Procesar audio en hilo separado
                 threading.Thread(
@@ -79,7 +84,7 @@ class EarTrainingMode:
         """Transcribir audio a texto"""
         try:
             # Reconocimiento en español
-            text = self.recognizer.recognize_google(audio, language='es-ES')
+            text = self.recognizer.recognize_google(audio, language=VOICE_LANGUAGE)
 
             # Detectar speaker (simplificado por ahora)
             speaker_id = self._identify_speaker(audio)
@@ -116,9 +121,9 @@ class EarTrainingMode:
                 self._display_transcription(transcription)
                 self.live_transcriptions.append(transcription)
 
-                # Limitar historial a últimas 50 transcripciones
-                if len(self.live_transcriptions) > 50:
-                    self.live_transcriptions = self.live_transcriptions[-50:]
+                # Limitar historial para evitar uso excesivo de memoria
+                if len(self.live_transcriptions) > MAX_TRANSCRIPTIONS:
+                    self.live_transcriptions = self.live_transcriptions[-MAX_TRANSCRIPTIONS:]
 
             except queue.Empty:
                 continue

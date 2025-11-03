@@ -3,6 +3,10 @@ import pyttsx3
 import threading
 import queue
 import time
+from config import (
+    SPEECH_RATE, SPEECH_VOLUME, VOICE_LANGUAGE,
+    AUDIO_TIMEOUT, PHRASE_TIME_LIMIT, MIC_CALIBRATION_DURATION
+)
 
 
 class AudioBot:
@@ -13,8 +17,8 @@ class AudioBot:
 
         # Inicializar síntesis de voz
         self.tts_engine = pyttsx3.init()
-        self.tts_engine.setProperty('rate', 150)
-        self.tts_engine.setProperty('volume', 0.8)
+        self.tts_engine.setProperty('rate', SPEECH_RATE)
+        self.tts_engine.setProperty('volume', SPEECH_VOLUME)
 
         # Cola de comandos detectados
         self.command_queue = queue.Queue()
@@ -30,7 +34,8 @@ class AudioBot:
         """Calibrar el micrófono para reducir ruido"""
         print("Calibrando micrófono...")
         with self.microphone as source:
-            self.recognizer.adjust_for_ambient_noise(source, duration=1)
+            self.recognizer.adjust_for_ambient_noise(
+                source, duration=MIC_CALIBRATION_DURATION)
         print("Micrófono calibrado")
 
     def speak(self, text):
@@ -62,7 +67,8 @@ class AudioBot:
                 with self.microphone as source:
                     # Escuchar con timeout corto
                     audio = self.recognizer.listen(
-                        source, timeout=1, phrase_time_limit=3)
+                        source, timeout=AUDIO_TIMEOUT,
+                        phrase_time_limit=PHRASE_TIME_LIMIT)
 
                 # Reconocer en hilo separado para no bloquear
                 threading.Thread(
@@ -79,7 +85,7 @@ class AudioBot:
         """Procesar audio reconocido"""
         try:
             text = self.recognizer.recognize_google(
-                audio, language='es-ES').lower()
+                audio, language=VOICE_LANGUAGE).lower()
             print(f"Escuché: {text}")
 
             # Agregar comando a la cola

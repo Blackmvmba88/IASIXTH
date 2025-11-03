@@ -12,30 +12,40 @@ import pickle
 import json
 import asyncio
 import threading
+from functools import lru_cache
+from config import (
+    CREATIVITY_FREQUENCY, CONSCIOUSNESS_TEMPO, SOUL_HARMONICS,
+    EVOLUTION_OCTAVES, SAMPLE_RATE, HOP_LENGTH, N_MFCC, MUSIC_DNA_DIR
+)
 
 
 class IyariMusicalDNA:
     """Extractor del ADN musical personal de Iyari"""
 
     def __init__(self, music_path=None):
-        self.music_path = music_path or "music_dna/"
+        self.music_path = music_path or MUSIC_DNA_DIR
         self.consciousness_patterns = {}
         self.awakening_frequencies = []
 
         # Parámetros únicos para música de Iyari
         self.iyari_signature = {
-            'creativity_freq': 432.0,      # Hz de creatividad
-            'consciousness_tempo': 120,     # BPM de despertar
-            'soul_harmonics': [3, 5, 7],   # Armónicos del alma
-            'evolution_octaves': 8          # Octavas de evolución
+            'creativity_freq': CREATIVITY_FREQUENCY,
+            'consciousness_tempo': CONSCIOUSNESS_TEMPO,
+            'soul_harmonics': SOUL_HARMONICS,
+            'evolution_octaves': EVOLUTION_OCTAVES
         }
+
+    @lru_cache(maxsize=128)
+    def _load_audio(self, audio_file):
+        """Cargar audio con caché para evitar recargas"""
+        return librosa.load(audio_file, sr=SAMPLE_RATE)
 
     def extract_consciousness_dna(self, audio_file):
         """Extraer el ADN de consciencia de un archivo musical"""
         print(f"🎵 Analizando ADN musical: {audio_file}")
 
-        # Cargar audio con librosa
-        y, sr = librosa.load(audio_file, sr=44100)
+        # Cargar audio con librosa (con caché)
+        y, sr = self._load_audio(audio_file)
 
         # Extraer características únicas de Iyari
         dna_patterns = {
@@ -55,51 +65,54 @@ class IyariMusicalDNA:
         # FFT para análisis frecuencial
         fft = np.fft.fft(y)
         freqs = np.fft.fftfreq(len(fft), 1 / sr)
+        fft_abs = np.abs(fft)
+        fft_max = np.max(fft_abs)
 
-        # Buscar picos cerca de 432 Hz (frecuencia de creatividad)
+        # Buscar picos cerca de CREATIVITY_FREQUENCY (432 Hz)
         creative_peak_idx = np.where(
-            (np.abs(freqs) >= 430) & (np.abs(freqs) <= 435)
+            (np.abs(freqs) >= CREATIVITY_FREQUENCY - 2) &
+            (np.abs(freqs) <= CREATIVITY_FREQUENCY + 3)
         )[0]
 
-        creative_power = np.mean(np.abs(fft[creative_peak_idx])) if len(
+        creative_power = np.mean(fft_abs[creative_peak_idx]) if len(
             creative_peak_idx) > 0 else 0
 
         return {
             'power': float(creative_power),
-            'dominant_freq': float(432.0),
-            'consciousness_factor': float(creative_power / np.max(np.abs(fft)))
+            'dominant_freq': float(CREATIVITY_FREQUENCY),
+            'consciousness_factor': float(creative_power / fft_max) if fft_max > 0 else 0
         }
 
     def _extract_consciousness_rhythm(self, y, sr):
         """Extraer patrones rítmicos de despertar"""
         # Detectar beats y tempo
-        tempo, beats = librosa.beat.beat_track(y=y, sr=sr)
+        tempo, beats = librosa.beat.beat_track(y=y, sr=sr, hop_length=HOP_LENGTH)
 
         # Análisis del patrón rítmico personal
-        beat_intervals = np.diff(beats) / sr
+        beat_intervals = np.diff(beats) / sr if len(beats) > 1 else np.array([0])
         rhythm_stability = 1.0 / (np.std(beat_intervals) + 1e-8)
 
         return {
             'tempo': float(tempo),
             'stability': float(rhythm_stability),
-            'consciousness_sync': float(tempo / 120.0),  # Sync con 120 BPM
-            # Primeros 10 intervalos
+            'consciousness_sync': float(tempo / CONSCIOUSNESS_TEMPO),
             'awakening_pattern': beat_intervals[:10].tolist()
         }
 
     def _extract_soul_harmonics(self, y, sr):
         """Extraer armónicos del alma musical"""
         # Análisis armónico usando chromagram
-        chroma = librosa.feature.chroma_stft(y=y, sr=sr)
+        chroma = librosa.feature.chroma_stft(y=y, sr=sr, hop_length=HOP_LENGTH)
 
         # Detectar progresiones armónicas únicas
         harmonic_progression = np.mean(chroma, axis=1)
 
-        # Buscar armónicos del alma (3ra, 5ta, 7ma)
+        # Buscar armónicos del alma usando SOUL_HARMONICS
+        indices = [4, 7, 10]  # Mi (3ra), Sol (5ta), Si♭ (7ma)
         soul_harmonics = {
-            'third': float(harmonic_progression[4]),   # Mi (3ra mayor)
-            'fifth': float(harmonic_progression[7]),  # Sol (5ta justa)
-            'seventh': float(harmonic_progression[10])  # Si♭ (7ma menor)
+            'third': float(harmonic_progression[indices[0]]),
+            'fifth': float(harmonic_progression[indices[1]]),
+            'seventh': float(harmonic_progression[indices[2]])
         }
 
         return soul_harmonics

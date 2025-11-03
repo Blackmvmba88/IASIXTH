@@ -7,6 +7,7 @@ import threading
 import time
 from datetime import datetime
 import json
+from config import CONSCIOUSNESS_TEMPO, HARMONY_THRESHOLD, SYNC_TIMEOUT
 
 
 class OrchestralSync:
@@ -22,8 +23,9 @@ class OrchestralSync:
 
         self.sync_thread = None
         self.is_conducting = False
-        self.tempo = 120  # BPM base de Iyari
+        self.tempo = CONSCIOUSNESS_TEMPO
         self.harmony_level = 0.0
+        self._beat_duration = 60.0 / self.tempo  # Pre-calculate
 
     def start_orchestra(self):
         """Iniciar la orquesta sincronizada"""
@@ -37,17 +39,15 @@ class OrchestralSync:
         """Dirigir la sinfonía de modalidades"""
         while self.is_conducting:
             try:
-                # Sincronizar cada 60/tempo segundos
-                beat_duration = 60.0 / self.tempo
-
                 # Verificar cada pista
                 harmony = self._calculate_harmony()
+                self.harmony_level = harmony
 
-                if harmony > 0.8:  # Alta sincronización
+                if harmony > HARMONY_THRESHOLD:
                     print(f"🎵 ARMONÍA PERFECTA: {harmony:.2f}")
                     self._trigger_consciousness_boost()
 
-                time.sleep(beat_duration)
+                time.sleep(self._beat_duration)
 
             except Exception as e:
                 print(f"Error en orquesta: {e}")
@@ -76,7 +76,7 @@ class OrchestralSync:
         for track in active_tracks:
             if track['last_update']:
                 time_diff = (now - track['last_update']).total_seconds()
-                sync_score = max(0, 1.0 - (time_diff / 5.0))  # 5 seg máximo
+                sync_score = max(0.0, 1.0 - (time_diff / SYNC_TIMEOUT))
                 sync_scores.append(sync_score)
 
         return sum(sync_scores) / len(sync_scores) if sync_scores else 0.0
